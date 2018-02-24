@@ -1,0 +1,221 @@
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Text;
+import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Button;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+public class ClientForm {
+
+	protected Shell shell;
+	private Text DnoTextBox;
+	private Text HourTextBox;
+	private Text PnameTextBox;
+	private Text NameTextBox;
+	private Text ResultTextBox;
+	private Button Abtn;
+	private Button Cbtn;
+	
+	private String Ip;
+	private int PORT = 8080;
+	
+	private Socket socket;
+	private InputStream input;
+	private OutputStream output;
+	private DataInputStream datainput;
+	private DataOutputStream dataoutput;
+
+	/**
+	 * Launch the application.
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		try {
+			String str = "";
+			ClientForm window = new ClientForm(str);
+			window.open();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public ClientForm(String ip)
+	{
+		this.Ip = ip;
+		ConnectToServer();
+	}
+
+	/**
+	 * Open the window.
+	 */
+	public void open() {
+		Display display = Display.getDefault();
+		createContents();
+		shell.open();
+		shell.layout();
+		while (!shell.isDisposed()) {
+			if (!display.readAndDispatch()) {
+				display.sleep();
+			}
+		}
+	}
+	
+	void ConnectToServer()
+	{
+		try{
+			socket = new Socket(Ip, PORT);
+			if(socket != null)
+			{
+				ResultTextBox.append("\nConnected to Server\n");
+				
+				input = socket.getInputStream();
+				datainput = new DataInputStream(input);
+				
+				output = socket.getOutputStream();
+				dataoutput = new DataOutputStream(output);
+			}
+		}
+		catch(IOException ex)
+		{
+			ResultTextBox.append("\n\nCONNECT ERROR\n\n");
+		}
+		catch(Exception e){}
+		
+		Thread thread = new Thread(new Runnable(){
+			public void run(){
+				while(true){
+					try{
+						String msg = datainput.readUTF();
+						ResultTextBox.append(msg + "\n");
+					}
+					catch(IOException ex)
+					{
+						ResultTextBox.append("RECEIVE ERROR\n\n");
+						try{
+							output.close();
+							input.close();
+							dataoutput.close();
+							datainput.close();
+							socket.close();
+							break;
+						}
+						catch(IOException e){}
+					}
+				}
+			}
+		});
+	}//ConnectToServer ³¡
+
+	class Action implements ActionListener
+	{
+		public void actionPerformed(ActionEvent e)
+		{
+			try
+			{
+				if(e.getSource() == Abtn)
+				{
+					if((DnoTextBox.getText() == "") ||
+							(HourTextBox.getText() == "")
+							|| (PnameTextBox.getText() == ""))
+					{
+						ResultTextBox.append("\n\nINPUT QUERY\n\n");
+						return;
+					}
+					String msg = DnoTextBox.getText() 
+					+ HourTextBox.getText() 
+					+ PnameTextBox.getText();
+					
+					dataoutput.writeUTF(msg);
+					
+					DnoTextBox.setText("");
+					HourTextBox.setText("");
+					PnameTextBox.setText("");
+				}
+				else if(e.getSource() == Cbtn)
+				{
+					if(NameTextBox.getText() == "")
+					{
+						ResultTextBox.append("\n\nINPUT QUERY\n\n");
+						return;
+					}
+					String msg = NameTextBox.getText();
+					dataoutput.writeUTF(msg);
+					
+					NameTextBox.setText("");
+				}
+				else{}
+			}
+			catch (IOException ex)
+			{
+				ResultTextBox.append("SEND ERROR\n\n\n");
+			}
+		}
+	}
+	
+	/**
+	 * Create contents of the window.
+	 */
+	protected void createContents() {
+		shell = new Shell();
+		shell.setSize(747, 401);
+		shell.setText("SWT Application");
+		
+		Group QueryA = new Group(shell, SWT.NONE);
+		QueryA.setText("(a)");
+		QueryA.setBounds(26, 10, 384, 191);
+		
+		Label label = new Label(QueryA, SWT.NONE);
+		label.setBounds(26, 34, 71, 20);
+		label.setText("\uBD80\uC11C\uBC88\uD638");
+		
+		DnoTextBox = new Text(QueryA, SWT.BORDER);
+		DnoTextBox.setBounds(115, 31, 259, 26);
+		
+		Label lblNewLabel = new Label(QueryA, SWT.NONE);
+		lblNewLabel.setText("\uADFC\uBB34\uC2DC\uAC04");
+		lblNewLabel.setBounds(26, 83, 71, 20);
+		
+		HourTextBox = new Text(QueryA, SWT.BORDER);
+		HourTextBox.setBounds(115, 77, 259, 26);
+		
+		Label label_1 = new Label(QueryA, SWT.NONE);
+		label_1.setText("\uD504\uB85C\uC81D\uD2B8\uBA85");
+		label_1.setBounds(10, 133, 83, 20);
+		
+		PnameTextBox = new Text(QueryA, SWT.BORDER);
+		PnameTextBox.setBounds(115, 127, 259, 26);
+		
+		Group grpc = new Group(shell, SWT.NONE);
+		grpc.setText("(c)");
+		grpc.setBounds(26, 207, 384, 71);
+		
+		Label label_2 = new Label(grpc, SWT.NONE);
+		label_2.setText("\uC0AC\uC6D0\uBA85");
+		label_2.setBounds(10, 38, 51, 20);
+		
+		NameTextBox = new Text(grpc, SWT.BORDER);
+		NameTextBox.setBounds(67, 35, 307, 26);
+		
+		ResultTextBox = new Text(shell, SWT.BORDER);
+		ResultTextBox.setEditable(false);
+		ResultTextBox.setBounds(416, 20, 303, 258);
+		
+		Abtn = new Button(shell, SWT.NONE);
+		Abtn.setBounds(36, 299, 247, 45);
+		Abtn.setText("Query A");
+		
+		Cbtn = new Button(shell, SWT.NONE);
+		Cbtn.setBounds(440, 299, 260, 45);
+		Cbtn.setText("Query C");
+	}
+}

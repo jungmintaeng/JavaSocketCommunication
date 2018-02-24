@@ -1,0 +1,144 @@
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.Scanner;
+
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.MessageBox;
+
+public class Client {
+	private String Ip;
+	private int PORT = 8080;
+	
+	private Socket socket;
+	private InputStream input;
+	private OutputStream output;
+	private DataInputStream datainput;
+	private DataOutputStream dataoutput;
+	
+	public Client(){
+		try{
+			socket = new Socket(Ip, PORT);
+			if(socket != null)
+			{
+				System.out.println("\nConnected to Server\n");
+			}
+			SelectQuery();
+		}
+		catch(IOException ex)
+		{
+			System.out.println("\n\nCONNECT ERROR\n\n");
+		}
+		catch(Exception e){}
+	}
+
+	
+	private void SelectQuery()
+	{
+		Scanner sc;
+		byte SelectedQuery;
+		
+		do
+		{
+			System.out.println("a Query인가요 c Query인가요?");
+			sc = new Scanner(System.in);
+			
+			SelectedQuery = sc.nextByte();
+			
+			if(SelectedQuery == 'a')
+			{
+				SendAQuery();
+			}
+			else if(SelectedQuery == 'c')
+			{
+				
+			}
+		}
+		while(SelectedQuery != 'a' && SelectedQuery != 'c');
+	}
+	
+	private void SendAQuery(){
+		/*
+		if((DnoTextBox.getText() == "") ||
+				(HourTextBox.getText() == "")
+				|| (PnameTextBox.getText() == ""))
+		{
+			System.out.println("\n\nINPUT QUERY\n\n");
+			return;
+		}
+		String msg = DnoTextBox.getText() + " "
+		+ HourTextBox.getText() + " "
+		+ PnameTextBox.getText();*/
+		
+		System.out.println("Input Query");
+		
+		Scanner sc = new Scanner(System.in);
+		String msg = sc.nextLine();
+		
+		try
+		{
+			input = socket.getInputStream();
+			datainput = new DataInputStream(input);
+			
+			output = socket.getOutputStream();
+			dataoutput = new DataOutputStream(output);
+			
+			dataoutput.writeUTF(msg);
+			
+			System.out.println(msg + "\n");
+		}
+		catch(IOException ex)
+		{
+			System.out.println("SEND ERROR");
+		}
+	}
+	
+	private void ConnectToServer()
+	{
+		try{
+			socket = new Socket(Ip, PORT);
+			if(socket != null)
+			{
+				System.out.println("\nConnected to Server\n");
+			}
+		}
+		catch(IOException ex)
+		{
+			System.out.println("\n\nCONNECT ERROR\n\n");
+		}
+		catch(Exception e){}
+		
+		Thread thread = new Thread(new Runnable(){
+			public void run(){
+				while(true){
+					try{
+						String msg = datainput.readUTF();
+						System.out.println(msg + "\n");
+					}
+					catch(IOException ex)
+					{
+						
+						try{
+							System.out.println("RECEIVE ERROR\n\n");
+							output.close();
+							input.close();
+							dataoutput.close();
+							datainput.close();
+							socket.close();
+							break;
+						}
+						catch(Exception e){
+							System.out.println("RECEIVE ERROR\n\n");
+						}
+					}
+				}
+			}
+		});
+		
+		thread.start();
+	}//ConnectToServer 끝
+}
